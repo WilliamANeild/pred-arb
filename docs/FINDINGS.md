@@ -76,3 +76,27 @@ edge and we should not risk money; if they do, we size tiny and passively.
    live markets (needs human confirmation of resolution rules), record those.
 3. Backtest the recorded ticks for dislocation frequency/size/persistence before
    any capital.
+
+## Update — live streaming layer built & validated (MLB)
+
+Built and tested end-to-end against live data:
+- **Polymarket WebSocket** (public, no auth) — `price_change` carries
+  `best_bid`/`best_ask` per token; feeds a live top-of-book cache tick-by-tick.
+- **Kalshi fast REST poller** (public, no key; Kalshi WS needs auth) — swappable for
+  a Kalshi WS client later.
+- **Tick recorder** → `data/ticks/<session>.jsonl`; **dislocation analyzer**
+  measures frequency / size / **persistence** (the make-or-break metric).
+- **MLB pair matcher** — moneyline + totals, matched on teams **and game date**.
+
+Two correctness lessons from real data:
+- Same-team, **different-date** games are different games. Polymarket has no date in
+  the title; must match on `gameStartTime` vs the Kalshi ticker's date code. (A naive
+  team-only match paired a Polymarket Aug-10 game with Kalshi Aug-12/13 games — 3 days
+  off — which would manufacture fake dislocations.) **Fixed** (exact-day match).
+- Open TZ caveat: Kalshi ticker time-zone vs Polymarket UTC can shift late-night games
+  by a day; exact-day match may miss those. Refine with real tz normalization.
+
+**To actually get the measurement:** run `scripts/mlb_pairs.py` then
+`scripts/stream_record.py` **during a live MLB game** (in-play, prices moving), then
+`scripts/analyze_dislocation.py`. Pre-game markets are quiet; the thesis is about
+*in-play* latency, so the recording must span first-pitch onward.
