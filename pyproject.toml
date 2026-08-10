@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "pred-arb"
+version = "0.1.0"
+description = "Research-first arbitrage across prediction markets (Kalshi, Polymarket)."
+authors = ["Liam Neild <williamaneild@gmail.com>"]
+readme = "README.md"
+packages = [{ include = "predarb", from = "src" }]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+requests = "^2.32"
+cryptography = "^43.0"
+pyyaml = "^6.0"
+python-dotenv = "^1.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

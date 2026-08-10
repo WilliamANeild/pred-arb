@@ -1,0 +1,32 @@
+# Curated market groups — the highest-trust matcher. Each group lists markets that
+# resolve on the SAME underlying event. Because YOU assert the equivalence, a
+# cross-member lock here is genuinely riskless (the only risk is a wrong grouping,
+# so curate carefully). `polarity: -1` means that member's YES corresponds to the
+# group event's NO (an inverse-worded market).
+#
+# kind:
+#   equivalence  -> all members resolve identically (same binary event)
+#   partition    -> members are mutually-exclusive, collectively-exhaustive outcomes
+#                   of one event (their YES probabilities should sum to ~1)
+#
+# This file ships with illustrative EXAMPLES using placeholder tickers. Replace the
+# market_ids with real ones (use `python scripts/scan.py --list <venue>` to find
+# them) before trusting any output.
+
+groups:
+  - key: example-fed-cut-march
+    kind: equivalence
+    trust: 1.0
+    note: "Same event worded two ways across venues — replace with real tickers."
+    members:
+      - { venue: kalshi,     market_id: "FEDCUT-26MAR-YES", polarity: 1 }
+      - { venue: polymarket, market_id: "will-the-fed-cut-in-march", polarity: 1 }
+
+  - key: example-election-partition
+    kind: partition
+    trust: 1.0
+    note: "Mutually-exclusive outcomes of one race; YES probs should sum to ~1."
+    members:
+      - { venue: kalshi, market_id: "RACE-CAND-A", polarity: 1 }
+      - { venue: kalshi, market_id: "RACE-CAND-B", polarity: 1 }
+      - { venue: kalshi, market_id: "RACE-CAND-C", polarity: 1 }
