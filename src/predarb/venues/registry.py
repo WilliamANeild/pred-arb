@@ -1,6 +1,7 @@
 """Venue registry — build the set of adapters enabled by config."""
 from __future__ import annotations
 
+from ..common.config import odds as odds_cfg
 from ..common.config import polymarket as poly_cfg
 from ..common.logenv import get_logger
 from .base import VenueAdapter
@@ -25,5 +26,12 @@ def build_adapters(*, include_polymarket: bool | None = None) -> dict[str, Venue
             adapters["polymarket"] = PolymarketAdapter()
         except Exception as e:  # noqa: BLE001
             log.warning("polymarket adapter unavailable: %s", e)
+
+    if odds_cfg.enabled and odds_cfg.has_credentials():
+        try:
+            from .odds import OddsAdapter
+            adapters["odds"] = OddsAdapter()
+        except Exception as e:  # noqa: BLE001
+            log.warning("odds adapter unavailable: %s", e)
 
     return adapters

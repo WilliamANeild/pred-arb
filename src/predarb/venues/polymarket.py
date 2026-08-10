@@ -21,7 +21,9 @@ log = get_logger("venues.polymarket")
 
 class PolymarketAdapter(VenueAdapter):
     name = "polymarket"
-    env = "prod"   # Polymarket has no demo; reads are harmless, trading stays disabled
+    env = "prod"          # Polymarket has no demo; reads are harmless, trading stays disabled
+    market_type = "orderbook"
+    executable = False    # read-only in the POC (trading needs a funded USDC wallet + L2 key)
 
     def __init__(self, cfg: PolymarketConfig | None = None, session: requests.Session | None = None):
         self.cfg = cfg or default_cfg

@@ -28,16 +28,23 @@ trading until the backtest and a paper run both clear the go-live gate.
 ```
 src/predarb/
   common/    core types, config + safety flags, logging
-  venues/    VenueAdapter ABC · kalshi (RSA-PSS signed client) · polymarket (read) · registry
+  venues/    VenueAdapter ABC (capability model) · kalshi (signed) · polymarket (read)
+             · odds (sportsbook lines, quote-only) · registry
   matching/  curated (YAML) · intra-event (partition) · cluster (NLP)  -> market groups
   signal/    consensus (mean/dispersion/deviation) · fees · risk profiles
   sizing/    confidence-weighted fractional-Kelly, capped
   backtest/  fill sim · metrics + go-live gate · replay harness · grid · synthetic data
-  execute/   safety gate · paper broker · live executor (hard-gated)
+  execute/   safety gate · paper broker · leg-risk executor (+ paper/live backends)
+  engine/    live loop: snapshot all venues -> consensus -> leg-risk execution
   recorder/  snapshotter -> JSONL timeline (builds real backtest data over time)
-scripts/     scan · record · backtest · paper_trade · preflight · panic
+scripts/     scan · record · backtest · paper_trade · live · preflight · panic
 config/      params.yaml (strategy) · groups.yaml (curated equivalences)
 ```
+
+**Venues** (see `docs/VENUES.md`): trade on what we can (Kalshi, Polymarket — order
+books), read what we can't (sportsbook lines are quote-only and only inform
+consensus). A **leg-risk executor** makes multi-leg cross-venue locks safe to
+attempt: thinnest leg first, abort on price drift, auto-unwind if a leg fails.
 
 ## Quickstart
 
