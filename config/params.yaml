@@ -29,3 +29,8 @@ relval_min_edge: 0.04        # min fee-adjusted expected edge to open a converge
 kelly_fraction: 0.20         # fractional Kelly ceiling
 confidence_floor: 0.10       # below this confidence, size = 0
 cluster_trust: 0.60          # trust weight applied to NLP-cluster groups (dampens size)
+
+# --- leg-risk (cross-venue live execution) ---
+max_leg_drift: 0.02          # abort+unwind if a leg fills >this (prob) worse than quoted
+leg_order: thin_first        # fill hardest leg first: "thin_first" | "as_is"
+unwind_on_fail: true         # unwind already-filled legs if a later leg fails

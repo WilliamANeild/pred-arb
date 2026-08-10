@@ -28,9 +28,16 @@ KALSHI_HOSTS = {
     "demo": "https://demo-api.kalshi.co/trade-api/v2",
     "prod": "https://api.elections.kalshi.com/trade-api/v2",
 }
+KALSHI_WS_HOSTS = {
+    "demo": "wss://demo-api.kalshi.co/trade-api/ws/v2",
+    "prod": "wss://api.elections.kalshi.com/trade-api/ws/v2",
+}
 # Polymarket public data (Gamma) + order book (CLOB). Reads need no auth.
 POLYMARKET_GAMMA = "https://gamma-api.polymarket.com"
 POLYMARKET_CLOB = "https://clob.polymarket.com"
+POLYMARKET_WS = "wss://ws-subscriptions-clob.polymarket.com/ws/market"
+# the-odds-api: sportsbook lines (read-only; fixed-odds, not tradeable via API).
+ODDS_API_BASE = "https://api.the-odds-api.com/v4"
 
 
 def _env(name: str, default: str = "") -> str:
@@ -86,6 +93,19 @@ class PolymarketConfig:
 
     def has_credentials(self) -> bool:
         return bool(self.api_key and self.api_secret and self.api_passphrase)
+
+
+@dataclass
+class OddsConfig:
+    """Sportsbook lines via the-odds-api. Read-only: fixed-odds books have no public
+    order-placement API, so these quotes inform consensus but are never trade legs."""
+    enabled: bool = field(default_factory=lambda: _as_bool(_env("ODDS_API_ENABLED", "false")))
+    api_key: str = field(default_factory=lambda: _env("ODDS_API_KEY"))
+    regions: str = field(default_factory=lambda: _env("ODDS_API_REGIONS", "us"))
+    base_url: str = ODDS_API_BASE
+
+    def has_credentials(self) -> bool:
+        return bool(self.api_key)
 
 
 @dataclass
@@ -157,6 +177,10 @@ def load_params() -> dict:
         "kelly_fraction": 0.20,
         "confidence_floor": 0.10,
         "cluster_trust": 0.60,
+        # --- leg-risk (cross-venue live execution) ---
+        "max_leg_drift": 0.02,       # abort+unwind if a leg fills >this prob worse than quoted
+        "leg_order": "thin_first",   # execute hardest-to-fill leg first ("thin_first"|"as_is")
+        "unwind_on_fail": True,      # unwind already-filled legs if a later leg fails
     }
     path = CONFIG_DIR / "params.yaml"
     if yaml and path.exists():
@@ -168,4 +192,5 @@ def load_params() -> dict:
 
 kalshi = KalshiConfig()
 polymarket = PolymarketConfig()
+odds = OddsConfig()
 safety = SafetyConfig()

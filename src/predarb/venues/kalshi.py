@@ -15,6 +15,8 @@ def _cents_levels_to_prob(levels: list[tuple[int, int]]) -> list[tuple[float, in
 
 class KalshiAdapter(VenueAdapter):
     name = "kalshi"
+    market_type = "orderbook"
+    executable = True   # order book; actual trading still requires creds (see supports_trading)
 
     def __init__(self, cfg: KalshiConfig | None = None, client: KalshiClient | None = None):
         self.cfg = cfg or default_cfg
