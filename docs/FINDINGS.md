@@ -100,3 +100,24 @@ Two correctness lessons from real data:
 `scripts/stream_record.py` **during a live MLB game** (in-play, prices moving), then
 `scripts/analyze_dislocation.py`. Pre-game markets are quiet; the thesis is about
 *in-play* latency, so the recording must span first-pitch onward.
+
+## Update — every-line coverage + first live recording
+
+- **Cross-venue overlap is narrow.** Of all MLB line types, only **moneyline** and
+  **total runs** are liquid on *both* venues. Polymarket doesn't carry Kalshi's F5,
+  run-line, team-total, or player-prop ladders as tradeable pairs — so there are no
+  cross-venue pairs for those.
+- **Single-venue Kalshi ladders** (player hits/HR, total-runs Over ladders) *must*
+  be monotonic; inversions are riskless locks. Scanned live: the only "locks" were on
+  **settled games** (stale resting orders) — filtered out by a game-freshness guard
+  (4,759 stale markets skipped). Among **60 fresh ladder groups: 0 locks** → live
+  ladders are internally consistent (efficient).
+- **First live recording** across 3 in-play MLB games (moneyline pairs). The
+  end-to-end pipeline (WS + poll → cache → tick log → dislocation analysis) is
+  validated on real data. Preliminary (partial) read: **no capturable dislocation**
+  — but the sample is tiny; the full in-play window is the real test.
+
+**Running theme confirmed again:** fresh, liquid markets are efficient; the apparent
+edges are artifacts (settled-game stale orders, false matches, resolution-semantics
+gaps). Any real edge is a fleeting in-play latency event — which the recorder now
+captures for measurement before any capital is risked.
