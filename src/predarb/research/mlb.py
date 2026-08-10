@@ -94,22 +94,28 @@ def _fnum(x):
         return None
 
 
+KALSHI_MLB_SERIES = ("KXMLBGAME", "KXMLBTOTAL")
+
+
 def _pull_kalshi_mlb():
+    """Query each MLB series directly — reliably surfaces TODAY's games, unlike
+    paging the 10k-market generic feed."""
     c = KalshiClient()
-    out, cur, pg = [], None, 0
-    while pg < 60:
-        p = {"status": "open", "limit": 200}
-        if cur:
-            p["cursor"] = cur
-        r = c._request("GET", "/markets", params=p)
-        for m in r.get("markets", []):
-            tk = m.get("ticker", "")
-            if tk.startswith(("KXMLBGAME", "KXMLBTOTAL")) and " vs" in m.get("title", "").lower():
-                out.append(m)
-        cur = r.get("cursor")
-        pg += 1
-        if not cur:
-            break
+    out = []
+    for series in KALSHI_MLB_SERIES:
+        cur, pg = None, 0
+        while pg < 10:
+            p = {"series_ticker": series, "status": "open", "limit": 200}
+            if cur:
+                p["cursor"] = cur
+            r = c._request("GET", "/markets", params=p)
+            for m in r.get("markets", []):
+                if " vs" in m.get("title", "").lower():
+                    out.append(m)
+            cur = r.get("cursor")
+            pg += 1
+            if not cur:
+                break
     return out
 
 
@@ -189,9 +195,12 @@ def discover_mlb_pairs() -> list[Pair]:
                     break
 
         elif tk.startswith("KXMLBTOTAL"):
-            line = _line(title)
+            # Kalshi puts the line in the sub-title ("Over 8.5 runs scored").
+            line = _line(m.get("yes_sub_title", "")) or _line(title)
+            if line is None:
+                continue
             for p in pm:
-                if p["line"] != line or not p["ids"]:
+                if p["line"] is None or p["line"] != line or not p["ids"]:
                     continue
                 ot = [str(o).lower() for o in (json.loads(p["outcomes"]) if isinstance(p["outcomes"], str) else p["outcomes"] or [])]
                 over_idx = ot.index("over") if "over" in ot else 0
