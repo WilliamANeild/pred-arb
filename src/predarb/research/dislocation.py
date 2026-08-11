@@ -62,8 +62,13 @@ def _poly_event_terms(bid, ask, polarity):
     return eb, ea
 
 
-def analyze(ticks: list[dict], pair: Pair) -> DislocationStats:
-    st = DislocationStats(pair_label=pair.label, n_ticks=len(ticks))
+def analyze(ticks: list[dict], pair: Pair, mode: str = "taker") -> DislocationStats:
+    """mode="taker": cross both spreads, pay Kalshi fee (what we measured first).
+    mode="maker": REST limit orders (buy at bid / sell at ask), earn the spread and
+    pay no taker fee. The maker lock is ~one full spread wider and fee-free — but it
+    ASSUMES both resting legs fill, which a backtest cannot guarantee (fill depends on
+    counterparty flow). Treat maker numbers as an UPPER BOUND to confirm live."""
+    st = DislocationStats(pair_label=f"{pair.label} [{mode}]", n_ticks=len(ticks))
     kbid = kask = pbid = pask = None
     series = []
     kkey, pkey = pair.kalshi_ticker, pair.poly_token
@@ -81,11 +86,15 @@ def analyze(ticks: list[dict], pair: Pair) -> DislocationStats:
         ts_last = ts
         if None in (kbid, kask, pbid, pask):
             continue
-        # lock1: buy YES kalshi @kask + buy NO poly  -> edge = pbid - kask - fee(kask)
-        # lock2: buy YES poly @pask  + buy NO kalshi -> edge = kbid - pask - fee(1-kbid)
-        lock1 = pbid - kask - _fee(pair.fee_rate, kask)
-        lock2 = kbid - pask - _fee(pair.fee_rate, 1.0 - kbid)
-        lock = max(lock1, lock2)
+        if mode == "maker":
+            # rest buy-YES @ bid on the cheap venue + buy-NO @ (1 - ask) on the dear
+            # venue; earn the spread, no taker fee.
+            lock = max(kask - pbid, pask - kbid)
+        else:
+            # taker: cross both spreads and pay the Kalshi taker fee.
+            lock1 = pbid - kask - _fee(pair.fee_rate, kask)
+            lock2 = kbid - pask - _fee(pair.fee_rate, 1.0 - kbid)
+            lock = max(lock1, lock2)
         series.append((ts, lock))
 
     st.n_both = len(series)
@@ -128,10 +137,16 @@ def analyze(ticks: list[dict], pair: Pair) -> DislocationStats:
 def _verdict(st: DislocationStats) -> str:
     if not st.n_episodes or st.max_lock <= 0:
         return "VERDICT: no positive-edge dislocation observed"
-    # Persistence is judged by the LONGEST episode (duration-weighted), not the
-    # median — a handful of sub-second flickers shouldn't mask real minute-long gaps.
     persistent = st.max_episode_s >= 1.0
-    # A cross-venue taker lock must clear ~2x round-trip friction to be worth it.
+    if "[maker]" in st.pair_label:
+        # The maker "lock" is essentially the combined cross-venue spread — an UPPER
+        # BOUND that ignores fill probability and adverse selection (you get filled on
+        # the leg about to move against you). Neither is measurable from top-of-book
+        # data, so this can only be confirmed by a small LIVE test.
+        return (f"VERDICT: maker upper-bound {st.mean_positive_lock:+.1%} mean "
+                f"({st.frac_dislocated:.0%} of ticks) — GROSS spread before fill "
+                f"probability & adverse selection; NOT backtestable, needs a tiny live test")
+    # taker
     tradeable_edge = st.max_lock >= 0.03
     if persistent and tradeable_edge:
         return ("VERDICT: persistent AND sizeable -> candidate edge; CONFIRM with "

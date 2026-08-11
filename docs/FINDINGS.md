@@ -152,3 +152,41 @@ in-play cross-venue), no edge beats costs *as a taker*. The market is efficient 
 roughly fee size. Remaining live hypotheses: (a) real-time data reveals the 2.3% was
 partly staleness → pivot; (b) **maker/fee-free execution captures the persistent
 basis** → the real strategy. Both need a Kalshi key to test.
+
+## Update — taker vs maker backtest, and the limit of backtesting
+
+Same BOS/TOR recording, both execution modes (`analyze(..., mode=)`):
+
+| mode  | positive | max lock | mean+ | note |
+|-------|----------|----------|-------|------|
+| taker | 26–33%   | +2.3%    | +0.6% | crosses both spreads, pays Kalshi fee → sub-fee |
+| maker | **100%** | +6–8%    | **+3.3%** | rests limit orders, earns spread, no fee |
+
+The maker number looks huge — and that is exactly why it must be read carefully.
+**"Maker lock 100% of the time at 3.3%" is essentially the combined cross-venue
+bid-ask spread**: what you'd earn *if* you were always filled at the bid on the cheap
+venue and the ask on the dear one, on both legs, simultaneously. It is a **gross
+upper bound** that ignores the two things that actually decide market-making profit:
+
+1. **Fill probability** — will anyone hit your resting order at all, and where are you
+   in the queue?
+2. **Adverse selection** — you tend to get filled on the leg that's about to move
+   *against* you, and *not* filled on the leg that ran away.
+
+Neither is observable from public top-of-book data. **So this is the hard limit of
+backtesting here:** it can rigorously kill the taker strategy (done — no edge), but it
+*cannot* validate the maker strategy. The 3.3% is real spread on the screen and mostly
+illusory profit until measured against real fills.
+
+**What this means for the plan.** The only way to know if the maker edge is real is a
+**small live test** (rest tiny orders, observe actual fill rate + adverse selection) —
+which is precisely the "limit it to something" approach. That needs live keys on both
+venues (small caps), not a demo. Backtesting has taken us as far as it structurally
+can; the next evidence has to come from tiny real fills.
+
+Encouraging sign for the maker thesis: the basis was **stable and persistent** (Kalshi
+consistently ~2–3¢ above Polymarket on BOS for the whole window), not jumpy — stable
+bases suffer *less* adverse selection than volatile ones. Necessary next data: does
+this persistent-direction basis hold across many games (multi-game recording underway)?
+If Kalshi *systematically* prices a group of markets a few cents off Polymarket, that's
+a structural, exploitable pattern rather than noise.
