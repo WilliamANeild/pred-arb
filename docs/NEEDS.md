@@ -20,13 +20,22 @@ next stages.
 - [ ] **Timezone normalization** for game-date matching (Kalshi ticker tz vs
       Polymarket UTC) so late-night games aren't dropped.
 
-## Access / keys
-- [ ] **Kalshi DEMO API key** (free — Kalshi → Profile → API Keys, demo env) — NOW
-      the concrete blocker. Needed to enable Kalshi **WebSocket** (real-time), which
-      removes the REST-polling confound and gives a clean in-play measurement. No
-      money involved; demo keys can't trade real funds. Put the PEM in `secrets/` and
-      set `KALSHI_KEY_ID` in `.env`.
-- [ ] **Kalshi prod API key** (later, to place real orders once an edge is proven).
+## Access / keys — for the tiny live maker test (decided: prod-small, not demo)
+The maker edge can't be backtested (fill probability + adverse selection aren't in
+public data), so validating it needs a small live test on BOTH venues.
+
+- [ ] **Kalshi PROD API key** (Profile → API Keys, prod). Caps stay tiny in `.env`
+      (single-digit $ per market). PEM in `secrets/`, `KALSHI_KEY_ID` in `.env`,
+      `KALSHI_ENV=prod`. Also unlocks the real-time Kalshi WebSocket (cleaner data).
+- [ ] **Polymarket API** — to trade the other leg. Requires:
+      1. a crypto wallet (e.g. MetaMask) on **Polygon**, funded with **USDC** (+ a little
+         POL/MATIC for gas);
+      2. an **L2 API key** derived by signing with that wallet (Polymarket CLOB
+         `create_api_key`);
+      3. set `POLYMARKET_API_KEY/SECRET/PASSPHRASE` in `.env`.
+      Reads (all our backtesting) need none of this. I'll build the Polymarket
+      trading adapter (order signing) once you've created the wallet + key — it's
+      untestable without them, so it shouldn't be written blind.
 - [ ] **Polymarket**: funded USDC wallet on Polygon + L2 API key — to place there.
       Bigger lift; only when we're ready to trade cross-venue.
 - [ ] **the-odds-api key** (optional, free tier) — to pull sportsbook lines as a
