@@ -37,6 +37,7 @@ class DislocationStats:
     n_episodes: int = 0
     median_episode_s: float = 0.0
     max_episode_s: float = 0.0
+    total_dislocated_s: float = 0.0   # summed episode duration (duration-weighted)
     duration_s: float = 0.0
     series: list = field(default_factory=list)   # (ts, lock) — optional, for plots
 
@@ -119,8 +120,26 @@ def analyze(ticks: list[dict], pair: Pair) -> DislocationStats:
         ordered = sorted(episodes)
         st.median_episode_s = ordered[len(ordered) // 2]
         st.max_episode_s = ordered[-1]
+        st.total_dislocated_s = sum(episodes)
     st.series = series
     return st
+
+
+def _verdict(st: DislocationStats) -> str:
+    if not st.n_episodes or st.max_lock <= 0:
+        return "VERDICT: no positive-edge dislocation observed"
+    # Persistence is judged by the LONGEST episode (duration-weighted), not the
+    # median — a handful of sub-second flickers shouldn't mask real minute-long gaps.
+    persistent = st.max_episode_s >= 1.0
+    # A cross-venue taker lock must clear ~2x round-trip friction to be worth it.
+    tradeable_edge = st.max_lock >= 0.03
+    if persistent and tradeable_edge:
+        return ("VERDICT: persistent AND sizeable -> candidate edge; CONFIRM with "
+                "real-time Kalshi WS (REST polling may show stale-quote locks)")
+    if persistent:
+        return (f"VERDICT: persistent (up to {st.max_episode_s:.0f}s) but tiny "
+                f"(max {st.max_lock:+.1%}) -> fees/slippage likely eat it; not worth taker execution")
+    return "VERDICT: only sub-second flickers -> not capturable by taking"
 
 
 def format_stats(st: DislocationStats) -> str:
@@ -131,11 +150,7 @@ def format_stats(st: DislocationStats) -> str:
         f"  dislocated fraction: {st.frac_dislocated:.1%}",
         f"  max lock edge:       {st.max_lock:+.3f}",
         f"  mean positive lock:  {st.mean_positive_lock:+.3f}",
-        f"  episodes:            {st.n_episodes}",
-        f"  median episode:      {st.median_episode_s:.2f}s",
-        f"  max episode:         {st.max_episode_s:.2f}s",
-        ("  VERDICT: episodes too short to fill both legs -> not capturable"
-         if st.n_episodes and st.median_episode_s < 1.0 else
-         "  VERDICT: some persistence -> worth a closer look" if st.n_episodes else
-         "  VERDICT: no positive-edge dislocation observed"),
+        f"  episodes:            {st.n_episodes}  (total {st.total_dislocated_s:.0f}s dislocated)",
+        f"  median / max episode:{st.median_episode_s:.2f}s / {st.max_episode_s:.2f}s",
+        f"  {_verdict(st)}",
     ])

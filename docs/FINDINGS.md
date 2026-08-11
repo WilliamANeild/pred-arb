@@ -121,3 +121,34 @@ Two correctness lessons from real data:
 edges are artifacts (settled-game stale orders, false matches, resolution-semantics
 gaps). Any real edge is a fleeting in-play latency event — which the recorder now
 captures for measurement before any capital is risked.
+
+## Update — first full in-play measurement (BOS/TOR, 2.6h, 669 ticks)
+
+Recorded 3 live MLB games; only BOS/TOR had two-sided data on both venues (159–201
+both-venue ticks). Result on the moneyline pair:
+
+- Cross-venue dislocations are **real and persistent**: 3 episodes of **35s, 150s,
+  200s** (not fleeting — long enough to fill both legs). Persistence is NOT the
+  blocker. (The naive *median* episode was 0.19s, dominated by sub-second flickers;
+  duration-weighted, ~386s of the window had a positive lock.)
+- But the edge is **tiny**: max **+2.3%** net, only 2 of 159 ticks above 2%, most
+  positive ticks **<0.5%**. It's a persistent ~2–3¢ basis (Kalshi priced BOS
+  59–60¢ vs Polymarket 56–57¢) that mostly sits *inside* the combined bid-ask spread.
+- **Verdict:** a ~2.3% gross gap does not survive Kalshi round-trip **taker fees**
+  (~1.75%/leg on a 50¢ contract) plus slippage. **Not worth taker execution.**
+
+**Two caveats that gate the final call:**
+1. **REST-polling confound.** Kalshi was polled (~0.4s/ticker), so some apparent
+   locks may be against a *stale* Kalshi quote that had already moved — i.e. not
+   real. A clean measurement needs Kalshi **WebSocket** (real-time), which requires
+   an API key (even a free demo key).
+2. **Fees, not speed, are the killer.** The only way this basis is capturable is
+   **maker execution** — resting limit orders to avoid taker fees (Polymarket even
+   pays liquidity rewards). That flips the fee math and is the one path left worth
+   testing.
+
+**Bottom line so far:** across every angle (static locks, single-venue ladders,
+in-play cross-venue), no edge beats costs *as a taker*. The market is efficient to
+roughly fee size. Remaining live hypotheses: (a) real-time data reveals the 2.3% was
+partly staleness → pivot; (b) **maker/fee-free execution captures the persistent
+basis** → the real strategy. Both need a Kalshi key to test.

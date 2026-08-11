@@ -20,9 +20,13 @@ next stages.
 - [ ] **Timezone normalization** for game-date matching (Kalshi ticker tz vs
       Polymarket UTC) so late-night games aren't dropped.
 
-## Access / keys (only needed to TRADE, not to research)
-- [ ] **Kalshi prod API key** (RSA key pair from Kalshi → Profile → API Keys) — to
-      place real Kalshi orders. Put the PEM at `secrets/` and IDs in `.env`.
+## Access / keys
+- [ ] **Kalshi DEMO API key** (free — Kalshi → Profile → API Keys, demo env) — NOW
+      the concrete blocker. Needed to enable Kalshi **WebSocket** (real-time), which
+      removes the REST-polling confound and gives a clean in-play measurement. No
+      money involved; demo keys can't trade real funds. Put the PEM in `secrets/` and
+      set `KALSHI_KEY_ID` in `.env`.
+- [ ] **Kalshi prod API key** (later, to place real orders once an edge is proven).
 - [ ] **Polymarket**: funded USDC wallet on Polygon + L2 API key — to place there.
       Bigger lift; only when we're ready to trade cross-venue.
 - [ ] **the-odds-api key** (optional, free tier) — to pull sportsbook lines as a
