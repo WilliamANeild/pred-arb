@@ -26,6 +26,16 @@ def _fee(rate: float, price: float) -> float:
     return rate * p * (1.0 - p)
 
 
+def _tradeable(bid, ask, *, min_p=0.03, max_p=0.97, max_spread=0.12) -> bool:
+    """A genuinely two-sided, non-degenerate book. Filters out the illiquid /
+    one-sided quotes (0/0, 0.02/0.98, x/0) that manufacture fake locks."""
+    if bid is None or ask is None:
+        return False
+    if not (min_p <= bid < ask <= max_p):
+        return False
+    return (ask - bid) <= max_spread
+
+
 @dataclass
 class DislocationStats:
     pair_label: str
@@ -84,7 +94,8 @@ def analyze(ticks: list[dict], pair: Pair, mode: str = "taker") -> DislocationSt
         ts = t["ts"]
         ts_first = ts if ts_first is None else ts_first
         ts_last = ts
-        if None in (kbid, kask, pbid, pask):
+        # both venues must show a genuine two-sided book, or the "lock" is a phantom.
+        if not (_tradeable(kbid, kask) and _tradeable(pbid, pask)):
             continue
         if mode == "maker":
             # rest buy-YES @ bid on the cheap venue + buy-NO @ (1 - ask) on the dear
