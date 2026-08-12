@@ -94,6 +94,14 @@ def _fnum(x):
         return None
 
 
+def _liquid(bid, ask) -> bool:
+    """Genuine two-sided book. Off-main-line Kalshi totals are one-sided/degenerate
+    (0/0, 0.02/0.98) and manufacture fake locks — exclude them at discovery time."""
+    if bid is None or ask is None:
+        return False
+    return 0.03 <= bid < ask <= 0.97 and (ask - bid) <= 0.12
+
+
 KALSHI_MLB_SERIES = ("KXMLBGAME", "KXMLBTOTAL")
 
 
@@ -171,9 +179,13 @@ def discover_mlb_pairs() -> list[Pair]:
         kdate = kalshi_game_date(tk)
         if kdate is None:
             continue
+        # only trade Kalshi markets that are actually two-sided liquid right now.
+        if not _liquid(_fnum(m.get("yes_bid_dollars")), _fnum(m.get("yes_ask_dollars"))):
+            continue
         game = frozenset((a, b))
         # SAME teams AND SAME game date — a 3-days-apart "match" is a different game.
-        pm = [p for p in poly if p["teams"] == game and p["date"] == kdate]
+        pm = [p for p in poly if p["teams"] == game and p["date"] == kdate
+              and _liquid(p["bid"], p["ask"])]
         if not pm:
             continue
         datelbl = f"{kdate[0]:02d}/{kdate[1]:02d}"
