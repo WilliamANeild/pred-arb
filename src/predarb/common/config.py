@@ -96,6 +96,24 @@ class PolymarketConfig:
 
 
 @dataclass
+class PolymarketUSConfig:
+    """Polymarket US (QCX) — the CFTC-regulated US-legal venue. Private-Key-JWT
+    (RS256) auth: sign a JWT with your RSA key, exchange for a 180s access token.
+    Onboarding provides client_id + the environment auth-domain/audience/token URL."""
+    client_id: str = field(default_factory=lambda: _env("POLYMARKET_US_CLIENT_ID"))
+    private_key_path: str = field(
+        default_factory=lambda: _env("POLYMARKET_US_PRIVATE_KEY_PATH", "./secrets/polymarket_us_private_key.pem"))
+    base_url: str = field(default_factory=lambda: _env("POLYMARKET_US_BASE_URL", "https://api.preprod.polymarketexchange.com"))
+    token_url: str = field(default_factory=lambda: _env("POLYMARKET_US_TOKEN_URL"))     # from onboarding
+    audience: str = field(default_factory=lambda: _env("POLYMARKET_US_AUDIENCE"))       # from onboarding
+    env: str = field(default_factory=lambda: _env("POLYMARKET_US_ENV", "preprod"))
+
+    def has_credentials(self) -> bool:
+        return bool(self.client_id and self.token_url and self.audience
+                    and Path(self.private_key_path).expanduser().exists())
+
+
+@dataclass
 class OddsConfig:
     """Sportsbook lines via the-odds-api. Read-only: fixed-odds books have no public
     order-placement API, so these quotes inform consensus but are never trade legs."""
@@ -192,5 +210,6 @@ def load_params() -> dict:
 
 kalshi = KalshiConfig()
 polymarket = PolymarketConfig()
+polymarket_us = PolymarketUSConfig()
 odds = OddsConfig()
 safety = SafetyConfig()

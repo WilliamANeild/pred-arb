@@ -27,15 +27,20 @@ public data), so validating it needs a small live test on BOTH venues.
 - [ ] **Kalshi PROD API key** (Profile → API Keys, prod). Caps stay tiny in `.env`
       (single-digit $ per market). PEM in `secrets/`, `KALSHI_KEY_ID` in `.env`,
       `KALSHI_ENV=prod`. Also unlocks the real-time Kalshi WebSocket (cleaner data).
-- [ ] **Polymarket API** — to trade the other leg. Requires:
-      1. a crypto wallet (e.g. MetaMask) on **Polygon**, funded with **USDC** (+ a little
-         POL/MATIC for gas);
-      2. an **L2 API key** derived by signing with that wallet (Polymarket CLOB
-         `create_api_key`);
-      3. set `POLYMARKET_API_KEY/SECRET/PASSPHRASE` in `.env`.
-      Reads (all our backtesting) need none of this. I'll build the Polymarket
-      trading adapter (order signing) once you've created the wallet + key — it's
-      untestable without them, so it shouldn't be written blind.
+- [x] **Which Polymarket?** → **Polymarket US (QCX)** — the CFTC-regulated, US-legal
+      venue, same footing as Kalshi. (2026-08-12) NOT international (geo-blocked).
+- [ ] **Polymarket US onboarding (THE current blocker — even reads need it).** Auth is
+      RSA Private-Key-JWT, like Kalshi. Steps:
+      1. ✅ keypair generated (`scripts/gen_polymarket_us_key.py`) — public key is at
+         `secrets/polymarket_us_public_key.pem`.
+      2. **You:** onboard at Polymarket US / email onboarding@qcex.com for API access,
+         and **register that public key**.
+      3. **You:** they return a **Client ID** (+ the env's **token URL** and
+         **audience**). Put them in `.env` (`POLYMARKET_US_CLIENT_ID/TOKEN_URL/
+         AUDIENCE`). Reads don't need KYC; trading later does.
+      Then I can pull Polymarket US order books and MEASURE whether the Kalshi basis
+      even exists on the legal venue (it may be much tighter — both are CFTC-regulated).
+      Client is built + unit-tested; just needs your onboarding values.
 - [ ] **Polymarket**: funded USDC wallet on Polygon + L2 API key — to place there.
       Bigger lift; only when we're ready to trade cross-venue.
 - [ ] **the-odds-api key** (optional, free tier) — to pull sportsbook lines as a
