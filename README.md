@@ -17,11 +17,30 @@ The whole point of the POC is that **matching mode** and **risk profile** are
 pluggable strategies, and the backtester runs the full grid to tell us which
 combination actually earns — rather than assuming.
 
-## Status
+## Status & conclusion
 
-**Proof of concept. Paper-only.** Real-money order placement is hard-disabled and
-gated behind five independent switches (see `docs/SAFETY.md`). Do not enable live
-trading until the backtest and a paper run both clear the go-live gate.
+**Proof of concept. Paper-only — no real money was ever placed.** Real-money order
+placement is hard-disabled behind five independent switches (see `docs/SAFETY.md`).
+
+**Honest result: we did not find a tradeable edge.** After building the full pipeline
+and measuring live Kalshi + Polymarket data (including tick-level in-play recordings
+of real MLB games), every backtestable strategy came back ≈0% or negative:
+
+- Static cross-venue "locks" — every large one was a **matching artifact** (different
+  date / line / polarity, or close-vs-touch resolution semantics), not arbitrage.
+- Single-venue dutch books — real but ~1–2% on multi-year markets (≈1%/yr).
+- Ladder monotonicity & fresh in-play books — **efficient**.
+- In-play cross-venue **taker** — a real but tiny ~0.6% gap that does **not** survive
+  Kalshi's ~7% fee.
+- In-play **maker** — the gross spread looks large (~3.3%) but that's an upper bound
+  that ignores fill probability and adverse selection; it is **not backtestable** from
+  public top-of-book data.
+
+Three separate times, the most attractive "edge" turned out to be a bug or artifact
+(false matches, settled-game stale orders, illiquid one-sided books) — which is what
+an efficient, already-arbitraged market looks like. See `docs/FINDINGS.md` for the
+full write-up. The value here is the **measure-first methodology and the guards** that
+kill fake edges — not a money printer.
 
 ## Layout
 
